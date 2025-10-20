@@ -17,7 +17,7 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
     def g(self,lambda_k):
         return self.function(self.x_k+ lambda_k*self.d_k)
     
-    def steepest_descent(self):
+    def steepest_descent(self,N,derivative_approx=True):
         '''
         Steepest descent 
 
@@ -46,8 +46,16 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         '''
         data = {}
         k = 1
+        if derivative_approx:
+            gradient = self.gradient_approx
+        elif self.gradient is not None:
+            gradient = self.gradient
+
+        else:
+            raise ValueError("No derivative function was provided, nor was an approximation requested.")
+        
         x_k = self.init_value
-        gradient_f_x_k = self.gradient_approx(x_k)
+        gradient_f_x_k = gradient(x_k)
         d_k = - gradient_f_x_k / np.linalg.norm(gradient_f_x_k)
 
         self.x_k = x_k
@@ -59,11 +67,11 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         print(50*'-')
         x_k_1 = x_k + lambda_k * d_k
         print(f"Iter {k}: x_k = {x_k}, lambda_k = {lambda_k:.6f}, d_k = {d_k}, x_k+1 = {x_k_1}")
-        gradient_f_x_k = self.gradient_approx(x_k_1)
+        gradient_f_x_k = gradient(x_k_1)
         data[k] = {'x_k':x_k,
                    'lambda_k':lambda_k,
                    'd_k':d_k}
-        while self.stop_by_grad(gradient_f_x_k,_,_):
+        while self.stop_by_grad(gradient_f_x_k,_,_) and k < N:
             k+=1
             d_k = - gradient_f_x_k / np.linalg.norm(gradient_f_x_k)
             x_k = x_k_1
@@ -74,7 +82,7 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
             with open(os.devnull, 'w') as f, redirect_stdout(f):
                 lambda_k ,_,_ = lambda_k.newton_algorithm()
             x_k_1 = x_k + lambda_k * d_k
-            gradient_f_x_k = self.gradient_approx(x_k_1)
+            gradient_f_x_k = gradient(x_k_1)
             print(f"Iter {k}: x_k = {x_k}, lambda_k = {lambda_k:.6f}, d_k = {d_k}, x_k+1 = {x_k_1}")
             data[k] = {'x_k':x_k,
                    'lambda_k':lambda_k,
@@ -83,7 +91,7 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         print(f"Stopped after {k} iterations. Final approximation: x = {x_k_1}")
 
         return x_k_1, k ,data
-    def newton_method(self,stop_rule='grad'):
+    def newton_method(self,N,stop_rule='grad',derivative_approx=True):
         '''
         Newton algorithm
 
@@ -119,31 +127,39 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         stopping_condition = STOP_RULES.get(stop_rule)
         if stopping_condition is None:
             raise ValueError(f"Unknown stop_rule '{stop_rule}'")
+        if derivative_approx:
+            gradient = self.gradient_approx
+            hessian = self.hessian_approx
 
+        elif self.gradient is not None:
+            gradient = self.gradient
+            hessian = self.hessian
+        else:
+            raise ValueError("No derivative function was provided, nor was an approximation requested.")
+        
         k = 1
         data = {}
 
         x_k = self.init_value
         data[k-1] = {'x_k':x_k}
-        grad = self.gradient_approx(x_k)
-        hessian = self.hessian_approx(x_k)
+        grad = gradient(x_k)
+        hessian = hessian(x_k)
         x_k_1 = x_k - np.linalg.inv(hessian) @ grad
-        grad_new = self.gradient_approx(x_k_1)
+        grad_new = gradient(x_k_1)
         data[k] = {'x_k':x_k_1}
         print(f"Iter {k}: x_k = {x_k}, grad = {grad_new}, hessian = {hessian}, x_k+1 = {x_k_1}")
-        while stopping_condition(grad_new, x_k_1, x_k):               
+        while stopping_condition(grad_new, x_k_1, x_k) and k < N:               
             k += 1
-            grad = self.gradient_approx(x_k)
-            hessian = self.hessian_approx(x_k)
+            grad = gradient(x_k)
+            hessian = hessian(x_k)
             x_k_1 = x_k - np.linalg.inv(hessian) @ grad
             x_k = x_k_1
-            grad_new = self.gradient_approx(x_k_1)
+            grad_new = gradient(x_k_1)
             data[k] = {'x_k':x_k}
             print(f"Iter {k}: x_k = {x_k}, grad = {grad}, hessian = {hessian}, x_k+1 = {x_k_1}")
 
         print(f"Stopped after {k} iterations. Final approximation: x = {x_k_1}")
         return x_k_1,k,data
-
 
 
     def plot_contour_with_points_and_path(self, data, grid_size=150, cmap='Greys', levels=80,
