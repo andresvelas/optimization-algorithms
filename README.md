@@ -1,6 +1,6 @@
 # Optimization Algorithms Library 
 
-## English — Summary
+## Summary
 
 This library implements classic numerical optimization techniques for unconstrained problems (1D and multi-D). It aims to provide educational and reusable implementations of methods such as:
 
