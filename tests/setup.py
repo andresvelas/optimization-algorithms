@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 import os
 
 
-name = 'default_name'
-email = 'default_gmail@example.com'
+name = 'Andrés Velasco'
+email = 'andres.velasco.sanchez.2023@gmail.com'
 
 setup(
     name='base_template_project',
@@ -14,7 +14,9 @@ setup(
         'numpy',
         'scipy',
         'pytest',
-        'matplotlib'
+        'matplotlib',
+        'sympy',
+        'plotly'
     ],
     author=name,
     author_email=email,
