@@ -3,4 +3,4 @@
 **.venv/
 **/*.egg-info/
 
-**/Optimizer.py
+/src/Optimizer.py
