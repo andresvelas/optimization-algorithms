@@ -91,7 +91,7 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         print(f"Stopped after {k} iterations. Final approximation: x = {x_k_1}")
 
         return x_k_1, k ,data
-    def newton_method(self,N,stop_rule='grad',derivative_approx=True):
+    def newton_method(self,N=100000,stop_rule='grad',derivative_approx=True):
         '''
         Newton algorithm
 
@@ -141,22 +141,24 @@ class MultidimensionalUnconstrainedOptimizerBase(UnconstrainedOptimizerBase):
         data = {}
 
         x_k = self.init_value
+        print(x_k)
         data[k-1] = {'x_k':x_k}
         grad = gradient(x_k)
-        hessian = hessian(x_k)
-        x_k_1 = x_k - np.linalg.inv(hessian) @ grad
+        H = hessian(x_k)
+        x_k_1 = x_k - np.linalg.inv(H) @ grad
         grad_new = gradient(x_k_1)
         data[k] = {'x_k':x_k_1}
-        print(f"Iter {k}: x_k = {x_k}, grad = {grad_new}, hessian = {hessian}, x_k+1 = {x_k_1}")
+        print(f"Iter {k}: x_k = {x_k}, grad = {np.linalg.norm(grad_new)}, x_k+1 = {x_k_1}")
         while stopping_condition(grad_new, x_k_1, x_k) and k < N:               
             k += 1
+            x_k = x_k_1
             grad = gradient(x_k)
-            hessian = hessian(x_k)
-            x_k_1 = x_k - np.linalg.inv(hessian) @ grad
+            H = hessian(x_k)
+            x_k_1 = x_k - np.linalg.inv(H) @ grad
             x_k = x_k_1
             grad_new = gradient(x_k_1)
             data[k] = {'x_k':x_k}
-            print(f"Iter {k}: x_k = {x_k}, grad = {grad}, hessian = {hessian}, x_k+1 = {x_k_1}")
+            print(f"Iter {k}: x_k = {x_k}, grad = {np.linalg.norm(grad_new)}, x_k+1 = {x_k_1}")
 
         print(f"Stopped after {k} iterations. Final approximation: x = {x_k_1}")
         return x_k_1,k,data

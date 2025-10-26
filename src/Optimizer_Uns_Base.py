@@ -18,13 +18,26 @@ class UnconstrainedOptimizerBase():
 
     def stop_by_f_diff(self,grad, x_new, x):
         return abs(self.function(x_new) - self.function(x)) > self.epsilon
-    def hessian_approx(self, x, h=1e-5):
-        x = np.asarray(x, dtype=float)
+
+
+    def hessian_approx(self, x, h=1e-5, regularization=True, eps_reg=1e-6):
+        """
+        Aproximación de la Hessiana con opción de regularización automática
+        para evitar singularidad o matrices mal condicionadas.
+        
+        Args:
+            x: vector de parámetros
+            h: paso para diferencias finitas
+            regularization: si True, se agrega un eps a la diagonal si la matriz es mal condicionada
+            eps_reg: valor de regularización (agregado a la diagonal)
+        """
+        x = np.asarray(x, dtype=float).flatten()
         n = x.size
         H = np.zeros((n, n))
         fx = self.function(x)
         I = np.eye(n)
 
+        # Calcular Hessiana por diferencias finitas
         for i in range(n):
             f_forward = self.function(x + h * I[i])
             f_backward = self.function(x - h * I[i])
@@ -35,10 +48,16 @@ class UnconstrainedOptimizerBase():
                 f2 = self.function(x + h * I[i] - h * I[j])
                 f3 = self.function(x - h * I[i] + h * I[j])
                 f4 = self.function(x - h * I[i] - h * I[j])
-                value = (f1 - f2 - f3 + f4) / (4 * h**2)
-                H[i, j] = H[j, i] = value
+                H[i, j] = H[j, i] = (f1 - f2 - f3 + f4) / (4 * h**2)
+
+        # Regularización si está mal condicionada
+        if regularization:
+            cond_number = np.linalg.cond(H)
+            if cond_number > 1e12:
+                H += eps_reg * np.eye(n)  # evita singularidad
 
         return H
+
 
     def gradient_approx(self,v,h=1e-5):
         v = np.array(v, dtype=float)
